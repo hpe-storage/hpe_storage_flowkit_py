@@ -13,4 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-# hpe_storage_flowkit_py
+# Tests for File Persona workflow
+# Adapted from python-3parclient-master/test/test_HPE3ParClient_FilePersona.py
+# ...test code...

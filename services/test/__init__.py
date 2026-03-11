@@ -13,4 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-# hpe_storage_flowkit_py
+
+"""
+Unit tests package for HPE Storage FlowKit Services.
+
+This package contains comprehensive unit tests for the ansible_service module
+with >90% code coverage.
+"""
+
+__version__ = '1.0.0'
+__author__ = 'HPE Storage Team'

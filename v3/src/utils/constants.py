@@ -13,4 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-# hpe_storage_flowkit_py
+"""
+Configuration defaults for HPE Storage FlowKit
+Users can override these values by modifying this file
+"""
+
+# Task polling configuration
+TASK_POLL_RATE_SECS = 3  # Default polling interval in seconds
+TASK_TIMEOUT_SECS = 1200  # Default timeout in seconds (20 minutes)

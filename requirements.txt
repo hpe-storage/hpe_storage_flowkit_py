@@ -1,0 +1,10 @@
+eventlet==0.40.4
+paramiko==4.0.0
+requests==2.32.5
+oslo.config==10.3.0
+oslo.log==8.1.0
+oslo.serialization==5.9.1
+oslo.service==4.5.1
+oslo.utils==10.0.0
+taskflow==6.2.0
+cinder==26.1.0
