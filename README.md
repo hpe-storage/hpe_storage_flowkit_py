@@ -14,11 +14,11 @@ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 License for the specific language governing permissions and limitations
 under the License.
 -->
-**hpe_storage_flowkit_py**
+# hpe_storage_flowkit_py
 
 This is a Client library that can talk to the HPE Alletra MP Storage array.
 
 
-# Requirements
+## Requirements
 
 HPE Alletra MP: 10.5
