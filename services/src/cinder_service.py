@@ -78,7 +78,7 @@ try:
 except ImportError as ie:
     msg = "Unable to import flowkit modules: %s" % ie
     LOG.error(msg)
-    raise exception.InvalidInput(reason=msg)
+    raise exception.InvalidInput(reason=msg) from ie
 
 
 hpe3par_opts = [
@@ -207,7 +207,7 @@ class CinderClient(SystemWorkflow,
             msg = (_("Failed to Login to array (%(url)s) because %(err)s") %
                    {'url': self._client_conf['hpe3par_api_url'], 'err': ex})
             LOG.error(msg)
-            raise exception.InvalidInput(reason=msg)
+            raise exception.InvalidInput(reason=msg) from ex
 
     def get_version(self):
         return self.VERSION
@@ -247,7 +247,7 @@ class CinderClient(SystemWorkflow,
             msg = (_("Failed to Login to array (%(url)s) because %(err)s") %
                    {'url': self._client_conf['hpe3par_api_url'], 'err': ex})
             LOG.error(msg)
-            raise exception.InvalidInput(reason=msg)
+            raise exception.InvalidInput(reason=msg) from ex
 
     def client_logout(self):
         if self.session_mgr:
@@ -269,7 +269,7 @@ class CinderClient(SystemWorkflow,
             msg = (_("Failed to Login to remote array (%(url)s) because %(err)s") %
                    {'url': remote_array['hpe3par_api_url'], 'err': ex})
             LOG.error(msg)
-            raise exception.InvalidInput(reason=msg)
+            raise exception.InvalidInput(reason=msg) from ex
         
         return repl_session_mgr
 
@@ -295,7 +295,7 @@ class CinderClient(SystemWorkflow,
                                 {'version': self.API_VERSION})
         except flowkit_exceptions.HPEStorageException as ex:
             LOG.error("Exception during get api version: %s", ex)
-            raise exception.InvalidInput(ex)
+            raise exception.InvalidInput(ex) from ex
         finally:
             self.client_logout()
         # Get the client ID for provider_location. We only need to retrieve
@@ -358,7 +358,6 @@ class CinderClient(SystemWorkflow,
         qos_support = True
         thin_support = True
         remotecopy_support = True
-        sr_support = True
         compression_support = True
 
         for cpg_name in self._client_conf['hpe3par_cpg']:
@@ -417,11 +416,11 @@ class CinderClient(SystemWorkflow,
                     (float(total_capacity - free_capacity) /
                      float(total_capacity)) * 100)
 
-            except flowkit_exceptions.HTTPNotFound:
+            except flowkit_exceptions.HTTPNotFound as ex:
                 err = (_("CPG (%s) doesn't exist on array")
                        % cpg_name)
                 LOG.error(err)
-                raise exception.InvalidInput(reason=err)
+                raise exception.InvalidInput(reason=err) from ex
 
             pool = {'pool_name': cpg_name,
                     'total_capacity_gb': total_capacity,
@@ -491,19 +490,19 @@ class CinderClient(SystemWorkflow,
     def validate_cpg(self, cpg_name):
         try:
             cpg = super().get_cpg(cpg_name)
-        except flowkit_exceptions.HTTPNotFound:
+        except flowkit_exceptions.HTTPNotFound as ex:
             err = (_("CPG (%s) doesn't exist on array") % cpg_name)
             LOG.error(err)
-            raise exception.InvalidInput(reason=err)
+            raise exception.InvalidInput(reason=err) from ex
 
     def get_domain(self, cpg_name):
         try:
             cpg = super().get_cpg(cpg_name)
-        except flowkit_exceptions.HTTPNotFound:
+        except flowkit_exceptions.HTTPNotFound as ex:
             err = (_("Failed to get domain because CPG (%s) doesn't "
                      "exist on array.") % cpg_name)
             LOG.error(err)
-            raise exception.InvalidInput(reason=err)
+            raise exception.InvalidInput(reason=err) from ex
 
         if 'domain' in cpg:
             return cpg['domain']
@@ -547,38 +546,19 @@ class CinderClient(SystemWorkflow,
     def _extend_volume(self, volume, volume_name, growth_size_mib,
                        _convert_to_base=False):
         model_update = None
-        rcg_name = self._get_3par_rcg_name(volume)
-        is_volume_replicated = self._volume_of_replicated_type(
-            volume, hpe_tiramisu_check=True)
-        volume_part_of_group = (
-            self._volume_of_hpe_tiramisu_type_and_part_of_group(volume))
-        if volume_part_of_group:
-            group = volume.get('group')
-            rcg_name = self._get_3par_rcg_name_of_group(group.id)
         try:
             if _convert_to_base:
                 LOG.debug("Converting to base volume prior to growing.")
                 model_update = self._convert_to_base_volume(volume)
-            # If the volume is replicated and we are not failed over,
-            # remote copy has to be stopped before the volume can be extended.
-            failed_over = volume.get("replication_status", None)
-            is_failed_over = failed_over == "failed-over"
-            if ((is_volume_replicated or volume_part_of_group) and
-               not is_failed_over):
-                self.client.stopRemoteCopy(rcg_name)
+
             LOG.debug("volume_name: %(var)s", {'var': volume_name})
             LOG.debug("growth_size_mib: %(var)s", {'var': growth_size_mib})
             super().grow_volume(volume_name, growth_size_mib)
-            if ((is_volume_replicated or volume_part_of_group) and
-               not is_failed_over):
-                self.client.startRemoteCopy(rcg_name)
+
         except Exception as ex:
             ex_str = str(ex)
             LOG.debug("Exception while extending volume: %s", ex_str)
 
-            # If the extend fails, we must restart remote copy.
-            if is_volume_replicated or volume_part_of_group:
-                self.client.startRemoteCopy(rcg_name)
             with excutils.save_and_reraise_exception() as ex_ctxt:
                 if (not _convert_to_base and
                     isinstance(ex, flowkit_exceptions.HTTPForbidden) and
@@ -729,7 +709,7 @@ class CinderClient(SystemWorkflow,
 
         :returns: True if AlletraMP, False otherwise
         """
-        return self.API_VERSION >= API_VERSION_R5
+        return self.API_VERSION >= constants.API_VERSION_R5
 
     def _get_qos_value(self, qos, key, default=None):
         if key in qos:
@@ -1159,7 +1139,7 @@ class CinderClient(SystemWorkflow,
                     # Delete the volume if unable to add it to the volume set
                     super().delete_volume(volume_name)
                     LOG.error("Exception: %s", ex)
-                    raise exception.CinderException(ex)
+                    raise exception.CinderException(ex) from ex
                 
             LOG.debug("perform replica: %(flag)s", {'flag': perform_replica})
             if perform_replica:
@@ -1170,7 +1150,7 @@ class CinderClient(SystemWorkflow,
 
         except Exception as ex:
             LOG.error("Exception: %s", ex)
-            raise exception.CinderException(ex)
+            raise exception.CinderException(ex) from ex
 
         return self._get_model_update(volume['host'], cpg,
                                       replication=replication_flag,
@@ -1341,16 +1321,16 @@ class CinderClient(SystemWorkflow,
                                 # if the volume is gone, it's as good as a
                                 # successful delete
                                 pass
-                            except Exception:
+                            except Exception as ex:
                                 msg = _("Volume has a temporary snapshot that "
                                         "can't be deleted at this time.")
-                                raise exception.VolumeIsBusy(message=msg)
+                                raise exception.VolumeIsBusy(message=msg) from ex
 
                     try:
                         self.delete_volume(volume)
-                    except Exception:
+                    except Exception as ex:
                         msg = _("Volume has children and cannot be deleted!")
-                        raise exception.VolumeIsBusy(message=msg)
+                        raise exception.VolumeIsBusy(message=msg) from ex
             except flowkit_exceptions.HTTPNotFound as ex:
                 ex_str = str(ex)
                 if str(constants.API_ERROR_23) in ex_str:
@@ -1359,7 +1339,7 @@ class CinderClient(SystemWorkflow,
                                 {'id': volume['id'], 'msg': ex})
         except Exception as ex:
             LOG.error("Exception: %s", ex)
-            raise exception.CinderException(ex)
+            raise exception.CinderException(ex) from ex
 
     def create_volume_from_snapshot(self, volume, snapshot, snap_name=None,
                                     vvs_name=None):
@@ -1431,7 +1411,7 @@ class CinderClient(SystemWorkflow,
                               {'id': volume['id'], 'ex': ex})
                     # Delete the volume if unable to grow it
                     super().delete_volume(volume_name)
-                    raise exception.CinderException(ex)
+                    raise exception.CinderException(ex) from ex
 
             # Check for flash cache setting in extra specs
             flash_cache = self.get_flash_cache_policy(hpe3par_keys)
@@ -1447,7 +1427,7 @@ class CinderClient(SystemWorkflow,
                     # Delete the volume if unable to add it to the volume set
                     super().delete_volume(volume_name)
                     LOG.error("Exception: %s", ex)
-                    raise exception.CinderException(ex)
+                    raise exception.CinderException(ex) from ex
 
             if self._volume_of_hpe_tiramisu_type(volume):
                 model_update['provider_location'] = self.id
@@ -1461,7 +1441,7 @@ class CinderClient(SystemWorkflow,
 
         except Exception as ex:
             LOG.error("Exception: %s", ex)
-            raise exception.CinderException(ex)
+            raise exception.CinderException(ex) from ex
 
         return model_update
 
@@ -1503,13 +1483,13 @@ class CinderClient(SystemWorkflow,
             super().create_snapshot(vol_name, snap_name, optional)
         except flowkit_exceptions.HTTPForbidden as ex:
             LOG.error("Exception: %s", ex)
-            raise exception.NotAuthorized()
+            raise exception.NotAuthorized() from ex
         except flowkit_exceptions.HTTPNotFound as ex:
             LOG.error("Exception: %s", ex)
-            raise exception.NotFound()
+            raise exception.NotFound() from ex
         except Exception as ex:
             LOG.error("Exception: %s", ex)
-            raise exception.CinderException(ex)
+            raise exception.CinderException(ex) from ex
 
     def delete_snapshot(self, snapshot):
         LOG.debug("Delete Snapshot id %(id)s %(name)s",
@@ -1521,7 +1501,7 @@ class CinderClient(SystemWorkflow,
             super().delete_snapshot(snap_name)
         except flowkit_exceptions.HTTPForbidden as ex:
             LOG.error("Exception: %s", ex)
-            raise exception.NotAuthorized()
+            raise exception.NotAuthorized() from ex
         except flowkit_exceptions.HTTPNotFound as ex:
             # We'll let this act as if it worked
             # it helps clean up the cinder entries.
@@ -1546,10 +1526,10 @@ class CinderClient(SystemWorkflow,
                             # if the volume is gone, it's as good as a
                             # successful delete
                             pass
-                        except Exception:
+                        except Exception as ex:
                             msg = _("Snapshot has a temporary snapshot that "
                                     "can't be deleted at this time.")
-                            raise exception.SnapshotIsBusy(message=msg)
+                            raise exception.SnapshotIsBusy(message=msg) from ex
 
                     if snap.startswith('osv-'):
                         LOG.info(
@@ -1585,12 +1565,12 @@ class CinderClient(SystemWorkflow,
                         self._convert_to_base_volume(v2)
                 try:
                     super().delete_snapshot(snap_name)
-                except Exception:
+                except Exception as ex:
                     msg = _("Snapshot has children and cannot be deleted!")
-                    raise exception.SnapshotIsBusy(message=msg)
+                    raise exception.SnapshotIsBusy(message=msg) from ex
             else:
                 LOG.error("Exception: %s", ex)
-                raise exception.SnapshotIsBusy(message=ex_str)
+                raise exception.SnapshotIsBusy(message=ex_str) from ex
             
     def revert_to_snapshot(self, volume, snapshot):
         """Revert volume to snapshot.
@@ -1622,7 +1602,7 @@ class CinderClient(SystemWorkflow,
                 msg = (_("There was an error stopping remote copy: %s.") %
                        str(ex))
                 LOG.error(msg)
-                raise exception.VolumeBackendAPIException(data=msg)
+                raise exception.VolumeBackendAPIException(data=msg) from ex
 
         if self.isOnlinePhysicalCopy(volume_name):
             LOG.debug("Found an online copy for %(volume)s.",
@@ -1650,7 +1630,7 @@ class CinderClient(SystemWorkflow,
                 msg = (_("There was an error starting remote copy: %s.") %
                        str(ex))
                 LOG.error(msg)
-                raise exception.VolumeBackendAPIException(data=msg)
+                raise exception.VolumeBackendAPIException(data=msg) from ex
 
         LOG.info("Volume %(volume)s succesfully reverted to %(snap)s.",
                  {'volume': volume_name, 'snap': snapshot_name})
@@ -1686,7 +1666,7 @@ class CinderClient(SystemWorkflow,
         except Exception as ex:
             msg = _('There was an error creating the cgsnapshot: %s') % str(ex)
             LOG.error(msg)
-            raise exception.InvalidInput(reason=msg)
+            raise exception.InvalidInput(reason=msg) from ex
 
         snapshot_model_updates = []
         for snapshot in snapshots:
@@ -3042,7 +3022,7 @@ class CinderClient(SystemWorkflow,
                 if vlun['volumeName'] == vol_name:
                     existing_vlun = vlun
                     break
-        except flowkit_exceptions.HTTPNotFound as ex:
+        except flowkit_exceptions.HTTPNotFound:
             # ignore, host was not found OR VLUNs were not found
             return None
 
@@ -3064,9 +3044,10 @@ class CinderClient(SystemWorkflow,
         except flowkit_exceptions.HTTPNotFound as ex:
             # ignore, no existing VLUNs were found
             LOG.debug("No existing VLUNs were found for host/volume "
-                      "combination: %(host)s, %(vol)s",
+                      "combination: %(host)s, %(vol)s,%(exception)s",
                       {'host': host['name'],
-                       'vol': vol_name})
+                       'vol': vol_name,
+                       'exception': ex})
         return existing_vluns
 
     def get_ports(self):
@@ -3075,10 +3056,10 @@ class CinderClient(SystemWorkflow,
 
     def get_active_target_ports(self, remote_client=None):
         if remote_client:
-            client_obj = remote_client
-            ports = remote_client.getPorts()
+            #client_obj = remote_client
+            ports = remote_client.get_ports()
         else:
-            client_obj = self.client
+            #client_obj = self.client
             ports = self.get_ports()
 
         target_ports = []
@@ -3134,8 +3115,6 @@ class CinderClient(SystemWorkflow,
         # create vlun_wf using secondary array
 
         try:
-            location = None
-
             if remote_client:
                 client_obj = remote_client
             else:
@@ -3158,7 +3137,9 @@ class CinderClient(SystemWorkflow,
             vlun_info = {'lun_id': None}
             return vlun_info
         except flowkit_exceptions.HPEStorageException as ex:
-            raise exception.VolumeBackendAPIException()
+            LOG.error("Exception creating VLUN for volume %(vol)s on host %(host)s: %(ex)s",
+                      {'vol': vol_name, 'host': hostname, 'ex': ex})
+            raise exception.VolumeBackendAPIException() from ex
 
     def _safe_hostname(self, connector, configuration):
         """We have to use a safe hostname length for 3PAR host names."""
@@ -3284,7 +3265,7 @@ class CinderClient(SystemWorkflow,
         try:
             vluns = vlun_wf.getHostVLUNs(hostname)
         except flowkit_exceptions.HTTPNotFound as ex:
-            LOG.debug("All VLUNs removed from host %s", hostname)
+            LOG.debug("All VLUNs removed from host %s, exception: %s", hostname, ex)
 
         if wwn is not None and not isinstance(wwn, list):
             wwn = [wwn]
@@ -3546,10 +3527,10 @@ class CinderClient(SystemWorkflow,
         if volume['volume_type_id']:
             try:
                 volume_type = self._get_volume_type(volume['volume_type_id'])
-            except Exception:
+            except Exception as e:
                 reason = (_("Volume type ID '%s' is invalid.") %
                           volume['volume_type_id'])
-                raise exception.ManageExistingVolumeTypeMismatch(reason=reason)
+                raise exception.ManageExistingVolumeTypeMismatch(reason=reason) from e
 
         new_vals = {'newName': new_vol_name,
                     'comment': json.dumps(new_comment)}
@@ -3561,7 +3542,7 @@ class CinderClient(SystemWorkflow,
         try:
             super().modify_volume(target_vol_name, new_vals)
         except Exception as e:
-            raise 
+            raise exception.InvalidInput(reason=str(e)) from e
         LOG.info("Virtual volume '%(ref)s' renamed to '%(new)s'.",
                  {'ref': existing_ref['source-name'], 'new': new_vol_name})
 
@@ -3623,7 +3604,7 @@ class CinderClient(SystemWorkflow,
             err = (_("Virtual volume '%s' doesn't exist on array.") %
                    target_vol_name)
             LOG.error(err)
-            raise exception.InvalidInput(reason=err)
+            raise exception.InvalidInput(reason=err) from e
 
         return int(math.ceil(float(vol['sizeMiB']) / units.Ki))
 
@@ -3678,7 +3659,7 @@ class CinderClient(SystemWorkflow,
                         raise flowkit_exceptions.HPEStorageException(
                             "VLUN '%s' was not found" % vol_name)
                     hostname = vlun['hostname']
-                except flowkit_exceptions.HPEStorageException as e:
+                except flowkit_exceptions.HPEStorageException:
                     # not attached to any host
                     is_safe = True
 
@@ -3722,13 +3703,13 @@ class CinderClient(SystemWorkflow,
                          " to %(new_cpg)s",
                          {'volume_name': volume_name,
                           'old_cpg': old_cpg, 'new_cpg': new_cpg})
-                _response, body = self.client.modifyVolume(
+                _response, body = super().modify_volume(
                     volume_name,
                     {'action': 6,
                      'tuneOperation': 1,
                      'userCPG': new_cpg})
                 task_id = body['taskid']
-                status = self.TaskWaiter(self.client, task_id).wait_for_task()
+                status= self._wait_for_task_completion(task_id)
                 if status['status'] is not constants.TASK_DONE:
                     msg = (_('Tune volume task stopped before it was done: '
                              'volume_name=%(volume_name)s, '
@@ -3755,8 +3736,8 @@ class CinderClient(SystemWorkflow,
             response = None
             body = None
             try:
-                if self.API_VERSION < COMPRESSION_API_VERSION:
-                    response, body = self.client.modifyVolume(
+                if self.API_VERSION < constants.COMPRESSION_API_VERSION:
+                    response, body = super().modify_volume(
                         volume_name,
                         {'action': 6,
                          'tuneOperation': 1,
@@ -3765,12 +3746,11 @@ class CinderClient(SystemWorkflow,
                 else:
                     LOG.debug("compression: %(compression)s",
                               {'compression': compression})
-                    body = self.client.tuneVolume(
+                    body = super().tune_volume(
                         volume_name,
-                        1,
                         {'action': 6,
+                         'tuneOperation': 1,
                          'userCPG': new_cpg,
-                         'compression': compression,
                          'conversionOperation': cop})
                     LOG.debug("body: %(body)s", {'body': body})
             except flowkit_exceptions.HTTPBadRequest as ex:
@@ -3785,7 +3765,7 @@ class CinderClient(SystemWorkflow,
                     raise
 
             task_id = body['taskid']
-            status = self.TaskWaiter(self.client, task_id).wait_for_task()
+            status= self._wait_for_task_completion(task_id)
             if status['status'] is not constants.TASK_DONE:
                 msg = (_('Tune volume task stopped before it was done: '
                          'volume_name=%(volume_name)s, '
@@ -4703,7 +4683,7 @@ class CinderClient(SystemWorkflow,
                         msg = (_("There was an error while modifying remote "
                                  "copy group: %s.") % str(ex))
                         LOG.error(msg)
-                        raise exception.VolumeBackendAPIException(data=msg)
+                        raise exception.VolumeBackendAPIException(data=msg) from ex
                 else:
                     # Ensure autoRecover is enabled for SYNC even when qorum witness is not set
                     opt_auto = {'targets': policy_targets}
@@ -4713,7 +4693,7 @@ class CinderClient(SystemWorkflow,
                         msg = (_("There was an error setting autoRecover for the "
                                  "remote copy group: %s.") % str(ex))
                         LOG.error(msg)
-                        raise exception.VolumeBackendAPIException(data=msg)
+                        raise exception.VolumeBackendAPIException(data=msg) from ex
 
             # Start the remote copy.
             try:
@@ -4722,7 +4702,7 @@ class CinderClient(SystemWorkflow,
                 msg = (_("There was an error starting remote copy: %s.") %
                        str(ex))
                 LOG.error(msg)
-                raise exception.VolumeBackendAPIException(data=msg)
+                raise exception.VolumeBackendAPIException(data=msg) from ex
 
             return True
         except Exception as ex:
@@ -4732,7 +4712,7 @@ class CinderClient(SystemWorkflow,
                      "recognized as replication type.") %
                    str(ex))
             LOG.error(msg)
-            raise exception.VolumeBackendAPIException(data=msg)
+            raise exception.VolumeBackendAPIException(data=msg) from ex
         
 
     def _do_volume_replication_destroy(self, volume, rcg_name=None,
@@ -4801,7 +4781,7 @@ class CinderClient(SystemWorkflow,
             msg = (_("The failed-over volume could not be deleted: %s") %
                    str(ex))
             LOG.error(msg)
-            raise exception.VolumeIsBusy(message=msg)
+            raise exception.VolumeIsBusy(message=msg) from ex
         finally:
             # Turn config mirroring back on
             for target in targets:
@@ -4873,7 +4853,14 @@ class CinderClient(SystemWorkflow,
 
     def _stop_remote_copy_group(self, group):
         # Stop remote copy.
-        rcg_name = self._get_3par_rcg_name_of_group(group.id)
+        # Handle both group objects and rcg_name strings
+        if isinstance(group, str):
+        # Called with rcg_name string
+            rcg_name = group
+        else:
+        # Called with group object
+            rcg_name = self._get_3par_rcg_name_of_group(group.id)
+
         try:
             super().stop_remote_copy_group(rcg_name)
         except Exception:
@@ -4882,7 +4869,14 @@ class CinderClient(SystemWorkflow,
 
     def _start_remote_copy_group(self, group):
         # Start remote copy.
-        rcg_name = self._get_3par_rcg_name_of_group(group.id)
+        # Handle both group objects and rcg_name strings
+        if isinstance(group, str):
+        # Called with rcg_name string
+            rcg_name = group
+        else:
+        # Called with group object
+            rcg_name = self._get_3par_rcg_name_of_group(group.id)
+
         rcg = super().get_remote_copy_group(rcg_name)
         if not rcg['volumes']:
             return
@@ -4892,7 +4886,7 @@ class CinderClient(SystemWorkflow,
             msg = (_("There was an error starting remote copy: %s.") %
                    str(ex))
             LOG.error(msg)
-            raise exception.VolumeBackendAPIException(data=msg)
+            raise exception.VolumeBackendAPIException(data=msg) from ex
 
     def _check_rep_status_enabled_on_group(self, group):
         """Check replication status for group.
@@ -5036,7 +5030,7 @@ class CinderClient(SystemWorkflow,
                    {'volume': volume.get('id'), 'group': group.id,
                     'err': str(ex)})
             LOG.error(msg)
-            raise exception.VolumeBackendAPIException(data=msg)
+            raise exception.VolumeBackendAPIException(data=msg) from ex
 
     def _set_rcg_sync_period(self, volume, rcg_name):
         sync_targets = []
@@ -5154,7 +5148,7 @@ class CinderClient(SystemWorkflow,
             msg = (_("There was an error deleting RCG %(rcg_name)s: "
                      "%(error)s.") % {'rcg_name': rcg_name, 'error': ex})
             LOG.error(msg)
-            raise exception.VolumeBackendAPIException(data=msg)
+            raise exception.VolumeBackendAPIException(data=msg) from ex
 
     def _check_tiramisu_configuration_on_volume_types(self, volume_types):
         for volume_type in volume_types:
@@ -5236,7 +5230,7 @@ class CinderClient(SystemWorkflow,
                      "group: %s.") %
                    str(ex))
             LOG.error(msg)
-            raise exception.VolumeBackendAPIException(data=msg)
+            raise exception.VolumeBackendAPIException(data=msg) from ex
 
     def _are_targets_in_their_natural_direction(self, rcg):
 
@@ -5281,7 +5275,7 @@ class CinderClient(SystemWorkflow,
                      "(%(error)s) and it was unsuccessful.") %
                    {'error': str(ex)})
             LOG.error(msg)
-            raise exception.VolumeBackendAPIException(data=msg)
+            raise exception.VolumeBackendAPIException(data=msg) from ex
         finally:
             self._destroy_replication_client(repl_session_mgr)
 
@@ -5300,7 +5294,7 @@ class CinderClient(SystemWorkflow,
                      "(%(error)s) and it was unsuccessful.") %
                    {'error': str(ex)})
             LOG.error(msg)
-            raise exception.VolumeBackendAPIException(data=msg)
+            raise exception.VolumeBackendAPIException(data=msg) from ex
         finally:
             self._destroy_replication_client(repl_session_mgr)
 
@@ -5439,7 +5433,7 @@ class CinderClient(SystemWorkflow,
         if remote_target:
             cpg = self._get_cpg_from_cpg_map(
                 remote_target['cpg_map'], src_cpg)
-            cpg_obj = remote_client.getCPG(cpg)
+            cpg_obj = remote_client.get_cpg(cpg)
             if 'domain' in cpg_obj:
                 domain = cpg_obj['domain']
         else:
@@ -5450,7 +5444,7 @@ class CinderClient(SystemWorkflow,
             connector['wwpns'] = connector['wwpns'][:1]
         try:
             if remote_target:
-                host = remote_client.getHost(hostname)
+                host = remote_client._get_3par_host(hostname)
             else:
                 LOG.debug("calling self._get_3par_host")
                 host = self._get_3par_host(hostname)
@@ -5465,7 +5459,7 @@ class CinderClient(SystemWorkflow,
                     self._get_prioritized_host_on_3par(
                         host, hosts, hostname))
         except flowkit_exceptions.HPEStorageException as ex:
-            LOG.debug("except HPEStorageException")
+            LOG.debug("exception HPEStorageException %s", ex)
             # get persona from the volume type extra specs
             persona_id = self.get_persona_type(volume)
             # host doesn't exist, we have to create it
@@ -5476,7 +5470,7 @@ class CinderClient(SystemWorkflow,
                                                         persona_id,
                                                         remote_client)
             if remote_target:
-                host = remote_client.getHost(hostname)
+                host = remote_client._get_3par_host(hostname)
             else:
                 host = self._get_3par_host(hostname)
             return host, cpg
@@ -5515,7 +5509,7 @@ class CinderClient(SystemWorkflow,
             self._modify_3par_fibrechan_host(
                 host['name'], new_wwns, remote_client)
             if remote_client:
-                host = remote_client.getHost(host['name'])
+                host = remote_client._get_3par_host(host['name'])
             else:
                 host = self._get_3par_host(host['name'])
         else:
@@ -5681,7 +5675,7 @@ class CinderClient(SystemWorkflow,
         if remote_target:
             cpg = self._get_cpg_from_cpg_map(
                 remote_target['cpg_map'], src_cpg)
-            cpg_obj = remote_client.getCPG(cpg)
+            cpg_obj = remote_client.get_cpg(cpg)
             if 'domain' in cpg_obj:
                 domain = cpg_obj['domain']
         else:
@@ -5699,7 +5693,7 @@ class CinderClient(SystemWorkflow,
 
         try:
             if remote_target:
-                host = remote_client.getHost(hostname)
+                host = remote_client._get_3par_host(hostname)
             else:
                 LOG.debug("calling self._get_3par_host")
                 host = self._get_3par_host(hostname)
@@ -5738,7 +5732,7 @@ class CinderClient(SystemWorkflow,
                                 "Updating host with new CHAP credentials.")
 
         if remote_target:
-            host = remote_client.getHost(hostname)
+            host = remote_client._get_3par_host(hostname)
         else:
             # set/update the chap details for the host
             LOG.debug("calling _set_3par_chaps")

@@ -10,7 +10,7 @@ THIN = 2
 DEDUP = 6
 CONVERT_TO_THIN = 1
 CONVERT_TO_FULL = 2
-CONVERT_TO_DEDUP = 3
+CONVERT_TO_DEDUP = 4
 
 # v2 replication constants
 SYNC = 1
@@ -26,6 +26,10 @@ RC_GROUP_STARTED = 3
 SYNC_STATUS_COMPLETED = 3
 FAILBACK_VALUE = 'default'
 ACTIVE_PP_REP_POLICY = 'active-active'
+
+#API version constants
+API_VERSION_R5 = 100500000
+COMPRESSION_API_VERSION = 30301215
 
 
 # Valid values for volume type extra specs
