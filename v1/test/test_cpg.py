@@ -18,10 +18,17 @@ import unittest
 from hpe_storage_flowkit_py.v1.src.workflows.cpg import CPGWorkflow
 
 class MockHTTPClient:
+	"""Lightweight stand-in for SessionManager.rest_client used by CPGWorkflow."""
+	def __init__(self):
+		# CPGWorkflow expects `session_mgr.rest_client`, so point rest_client to self
+		self.rest_client = self
+
 	def post(self, endpoint, payload):
 		return {"status": "created", "payload": payload}
+
 	def delete(self, endpoint):
 		return {"status": "deleted", "endpoint": endpoint}
+
 	def get(self, endpoint):
 		if endpoint == "/cpgs":
 			return {"members": ["cpg1", "cpg2"]}

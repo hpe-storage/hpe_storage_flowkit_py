@@ -35,15 +35,17 @@ from unittest.mock import Mock, MagicMock, patch, call
 import sys
 
 # Mock all external dependencies before importing the module under test
-# Add parent modules first
-sys.modules['hpe_storage_flowkit_py.v3.src.core'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.core'] = MagicMock()
+# Note: Do NOT mock the core package itself as MagicMock - only mock specific modules
 
 # Create exception classes at module level BEFORE importing ansible_service
 # Use types.ModuleType to create proper mock modules
 from types import ModuleType
 
 # Define actual exception classes
+class HPEStorageException(Exception):
+    """Base exception class for HPE Storage operations."""
+    pass
+
 class VolumeSetAlreadyExists(Exception):
     pass
 
@@ -104,11 +106,34 @@ class UserAlreadyExists(Exception):
 class HTTPNotFound(Exception):
     pass
 
+class HTTPError(Exception):
+    """HTTP error with status code."""
+    def __init__(self, status_code, message=None):
+        self.status_code = status_code
+        self.message = message or "HTTP error"
+        super().__init__(f"HTTP {status_code}: {self.message}")
+
+class HostAlreadyExists(Exception):
+    pass
+
+class HostDoesNotExist(Exception):
+    pass
+
+class InvalidParameterValue(Exception):
+    pass
+
+class InvalidInput(Exception):
+    pass
+
+class AuthenticationError(Exception):
+    pass
+
 class SSHException(Exception):
     pass
 
 # Create module-type objects
 mock_exceptions_v3 = ModuleType('mock_exceptions_v3')
+mock_exceptions_v3.HPEStorageException = HPEStorageException
 mock_exceptions_v3.VolumeSetAlreadyExists = VolumeSetAlreadyExists
 mock_exceptions_v3.VolumeSetDoesNotExist = VolumeSetDoesNotExist
 mock_exceptions_v3.VolumeSetMembersAlreadyPresent = VolumeSetMembersAlreadyPresent
@@ -128,39 +153,18 @@ mock_exceptions_v3.ScheduleAlreadyExists = ScheduleAlreadyExists
 mock_exceptions_v3.ScheduleDoesNotExist = ScheduleDoesNotExist
 mock_exceptions_v3.UserDoesNotExist = UserDoesNotExist
 mock_exceptions_v3.UserAlreadyExists = UserAlreadyExists
+mock_exceptions_v3.HTTPNotFound = HTTPNotFound
+mock_exceptions_v3.HTTPError = HTTPError
+mock_exceptions_v3.HostAlreadyExists = HostAlreadyExists
+mock_exceptions_v3.HostDoesNotExist = HostDoesNotExist
+mock_exceptions_v3.InvalidParameterValue = InvalidParameterValue
+mock_exceptions_v3.InvalidInput = InvalidInput
+mock_exceptions_v3.AuthenticationError = AuthenticationError
 
 mock_exceptions_v1 = ModuleType('mock_exceptions_v1')
+mock_exceptions_v1.HPEStorageException = HPEStorageException
 mock_exceptions_v1.HTTPNotFound = HTTPNotFound
 mock_exceptions_v1.SSHException = SSHException
-
-sys.modules['hpe_storage_flowkit_py.v3.src.core.exceptions'] = mock_exceptions_v3
-sys.modules['hpe_storage_flowkit_py.v3.src.core.session'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.core.logger'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.volumeset'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.cpg'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.volume'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.snapshot'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.qos'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.task'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.clone'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.hostset'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.ntp'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.dns'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.schedule'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v3.src.workflows.user'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.core.session'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.core.ssh'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.core.exceptions'] = mock_exceptions_v1
-sys.modules['hpe_storage_flowkit_py.v1.src.workflows.remote_copy'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.workflows.system'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.utils.remote_copy_utils'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.validators.remote_copy_validator'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.workflows.host'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.utils.host_utils'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.validators.host_validator'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.workflows.vlun'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.utils.vlun_utils'] = MagicMock()
-sys.modules['hpe_storage_flowkit_py.v1.src.validators.vlun_validator'] = MagicMock()
 
 
 class TestAnsibleClient(unittest.TestCase):

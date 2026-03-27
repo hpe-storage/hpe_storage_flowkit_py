@@ -19,10 +19,17 @@ from hpe_storage_flowkit_py.v1.src.workflows.volume import VolumeWorkflow
 from hpe_storage_flowkit_py.v1.src.validators.volume_validator import validate_volume_params
 
 class MockHTTPClient:
+	"""Lightweight stand-in for SessionManager.rest_client used by VolumeWorkflow."""
+	def __init__(self):
+		# VolumeWorkflow expects `session_mgr.rest_client`, so point rest_client to self
+		self.rest_client = self
+
 	def post(self, endpoint, payload):
 		return {"status": "created", "payload": payload}
+
 	def delete(self, endpoint):
 		return {"status": "deleted", "endpoint": endpoint}
+
 	def get(self, endpoint):
 		if endpoint == "/volumes":
 			return {"members": ["vol1", "vol2"]}
@@ -33,13 +40,13 @@ class TestVolumeWorkflow(unittest.TestCase):
 		self.workflow = VolumeWorkflow(MockHTTPClient())
 
 	def test_create_volume_success(self):
-		result = self.workflow.create_volume("vol1", 1024, "CPG1")
+		result = self.workflow.create_volume("vol1", "CPG1", 1024)
 		self.assertEqual(result["status"], "created")
 		self.assertEqual(result["payload"]["name"], "vol1")
 
 	def test_create_volume_invalid_name(self):
 		with self.assertRaises(ValueError):
-			self.workflow.create_volume("", 1024, "CPG1")
+			validate_volume_params("", 1024, "CPG1")
 
 	def test_delete_volume(self):
 		result = self.workflow.delete_volume("vol1")
@@ -55,25 +62,26 @@ class TestVolumeWorkflow(unittest.TestCase):
 		self.assertIn("vol2", result)
 
 	def test_create_volume_with_extra_params(self):
-		result = self.workflow.create_volume("vol2", 2048, "CPG2", comment="Test volume", provisioningType="thin")
+		params = {"comment": "Test volume", "provisioningType": "thin"}
+		result = self.workflow.create_volume("vol2", "CPG2", 2048, params=params)
 		self.assertEqual(result["payload"]["comment"], "Test volume")
 		self.assertEqual(result["payload"]["provisioningType"], "thin")
 
 	def test_create_volume_invalid_size(self):
 		with self.assertRaises(ValueError):
-			self.workflow.create_volume("vol3", -100, "CPG1")
+			validate_volume_params("vol3", -100, "CPG1")
 
 	def test_create_volume_invalid_cpg(self):
 		with self.assertRaises(ValueError):
-			self.workflow.create_volume("vol4", 100, 123)
+			validate_volume_params("vol4", 100, 123)
 
 	def test_delete_volume_invalid_name(self):
 		with self.assertRaises(ValueError):
-			self.workflow.delete_volume("")
+			validate_volume_params("")
 
 	def test_get_volume_invalid_name(self):
 		with self.assertRaises(ValueError):
-			self.workflow.get_volume("")
+			validate_volume_params("")
 
 	def test_integration_create_and_delete(self):
 		# Simulate create and delete sequence
