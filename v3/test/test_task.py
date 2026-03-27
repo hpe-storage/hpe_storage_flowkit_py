@@ -164,9 +164,15 @@ class TestTaskManager(unittest.TestCase):
 	@patch('src.workflows.task.time.sleep', return_value=None)
 	def test_wait_for_task_timeout_elapsed_time(self, mock_sleep, mock_time):
 		"""Test task timeout using elapsed time check."""
-		# Mock time to simulate timeout
-		mock_time.side_effect = [0, 1300, 1300]  # Start, then exceed 1200s timeout
+		# Mock time with a callable that returns start time on first call, then timeout values
+		call_count = 0
+		def mock_time_func():
+			nonlocal call_count
+			call_count += 1
+			return 0 if call_count == 1 else 1300  # First call returns 0, all others return 1300 (timeout)
 		
+		mock_time.side_effect = mock_time_func
+
 		self.session_mgr.rest_client.get.return_value = {
 			'status': 'STATE_RUNNING',
 			'percentComplete': 50
