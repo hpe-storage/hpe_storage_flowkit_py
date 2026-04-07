@@ -6070,9 +6070,9 @@ class ModifySpecsTask(flow_utils.CinderTask):
                 old_flash_cache != new_flash_cache):
 
             # Remove VV from old VV Set.
+            vs_wf=VolumeSetWorkflow(common.session_mgr)
             if old_vvs is not None and old_vvs != new_vvs:
-                common.client.removeVolumeFromVolumeSet(old_vvs,
-                                                        volume_name)
+                vs_wf.removeVolumeFromVolumeSet(old_vvs,volume_name)
                 self.needs_revert = True
 
             # If any extra or qos specs changed then remove the old
@@ -6080,7 +6080,7 @@ class ModifySpecsTask(flow_utils.CinderTask):
             # as needed.
             vvs_name = common._get_3par_vvs_name(volume['id'])
             try:
-                common.client.deleteVolumeSet(vvs_name)
+                vs_wf.delete_volumeset(vvs_name)
                 self.needs_revert = True
             except flowkit_exceptions.HTTPNotFound as ex:
                 ex_str = str(ex)
@@ -6099,12 +6099,13 @@ class ModifySpecsTask(flow_utils.CinderTask):
     def revert(self, common, volume_name, volume, old_vvs, new_vvs, old_qos,
                old_cpg, **kwargs):
         if self.needs_revert:
+            vs_wf = VolumeSetWorkflow(common.session_mgr)
             # If any extra or qos specs changed then remove the old
             # special VV set that we create and recreate it per
             # the old type specs.
             vvs_name = common._get_3par_vvs_name(volume['id'])
             try:
-                common.client.deleteVolumeSet(vvs_name)
+                vs_wf.delete_volumeset(vvs_name)
             except flowkit_exceptions.HTTPNotFound as ex:
                 ex_str = str(ex)
                 LOG.debug("flowkit HTTPNotFound: %s", ex_str)
@@ -6129,8 +6130,7 @@ class ModifySpecsTask(flow_utils.CinderTask):
 
             if new_vvs is not None and old_vvs != new_vvs:
                 try:
-                    common.client.removeVolumeFromVolumeSet(
-                        new_vvs, volume_name)
+                    vs_wf.removeVolumeFromVolumeSet(new_vvs, volume_name)
                 except Exception as ex:
                     LOG.error("%(exception)s: Exception during revert of "
                               "retype for volume %(volume_name)s. "
