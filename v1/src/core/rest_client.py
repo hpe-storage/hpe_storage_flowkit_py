@@ -79,54 +79,58 @@ class RESTClient:
             try:
                 body = response.json()
                 error_code = body.get("code")
+                error_desc = body.get("desc") or ""
             except (ValueError, AttributeError):
                 pass
             if error_code == 187:
-                raise exceptions.HTTPNotFound("The Remote Copy group does not exist. Error code 187")
+                raise exceptions.HTTPNotFound(f"The Remote Copy group does not exist. Error code 187: {error_desc}")
             elif error_code == 102:
-                raise exceptions.HTTPNotFound("The set does not exist. Error code 102")
+                raise exceptions.HTTPNotFound(f"The set does not exist. Error code 102: {error_desc}")
             elif error_code == 23:
-                raise exceptions.HTTPNotFound("The storage volume does not exist. Error code 23")
+                raise exceptions.HTTPNotFound(f"The storage volume does not exist. Error code 23: {error_desc}")
             raise exceptions.HTTPNotFound(f"{response.text}")
         elif response.status_code == HTTP_STATUS_FORBIDDEN:
             # Special handling for code 150/215
             try:
                 body = response.json()
                 error_code = body.get("code")
+                error_desc = body.get("desc") or ""
             except (ValueError, AttributeError):
                 pass
             if error_code == 150:
-                raise exceptions.HTTPForbidden("Invalid operation: Cannot grow this type of volume. Error code 150")
+                raise exceptions.HTTPForbidden(f"Invalid operation: Cannot grow this type of volume. Error code 150: {error_desc}")
             elif error_code == 215:
-                raise exceptions.HTTPForbidden("The Remote Copy group has already been started. Error code 215")
+                raise exceptions.HTTPForbidden(f"The Remote Copy group has already been started. Error code 215: {error_desc}")
             raise exceptions.HTTPForbidden(f"{response.text}")
         elif response.status_code == HTTP_STATUS_BAD_REQUEST:
             # Special handling for code 29/40
             try:
                 body = response.json()
                 error_code = body.get("code")
+                error_desc = body.get("desc") or ""
             except (ValueError, AttributeError):
                 pass
             if error_code == 29:
-                raise exceptions.HTTPBadRequest("Bad Request. Error code 29")
+                raise exceptions.HTTPBadRequest(f"Bad Request. Error code 29: {error_desc}")
             elif error_code == 40:
-                raise exceptions.HTTPBadRequest("Missing a required name-value pair. Error code 40")
+                raise exceptions.HTTPBadRequest(f"Missing a required name-value pair. Error code 40: {error_desc}")
             raise exceptions.HTTPBadRequest(f"{response.text}")
         elif response.status_code == HTTP_STATUS_CONFLICT:
             # Special handling for code 34, 151, 32, 73
             try:
                 body = response.json()
                 error_code = body.get("code")
+                error_desc = body.get("desc") or ""
             except (ValueError, AttributeError):
                 pass
             if error_code == 34:
-                raise exceptions.HTTPConflict("Resource is in use. Error code 34")
+                 raise exceptions.HTTPConflict(f"Resource is in use. Error code 34: {error_desc}")
             if error_code == 151:
-                raise exceptions.HTTPConflict("Volume tuning is in progress. Error code 151")
+                raise exceptions.HTTPConflict(f"Volume tuning is in progress. Error code 151: {error_desc}")
             if error_code == 32:
-                raise exceptions.HTTPConflict("Resource has a child. Error code 32")
+                raise exceptions.HTTPConflict(f"Resource has a child. Error code 32: {error_desc}")
             if error_code == 73:
-                raise exceptions.HTTPConflict("Host WWN/iSCSI name is already used by another host. Error code 73")
+                raise exceptions.HTTPConflict(f"Host WWN/iSCSI name is already used by another host. Error code 73: {error_desc}")
             raise exceptions.HTTPConflict(f"{response.text}")
         elif not response.ok:
             raise exceptions.HPEStorageException(f"HTTP {response.status_code}: {response.text}")

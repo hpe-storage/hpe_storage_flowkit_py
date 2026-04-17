@@ -3139,7 +3139,7 @@ class CinderClient(SystemWorkflow,
         except flowkit_exceptions.HPEStorageException as ex:
             LOG.error("Exception creating VLUN for volume %(vol)s on host %(host)s: %(ex)s",
                       {'vol': vol_name, 'host': hostname, 'ex': ex})
-            raise exception.VolumeBackendAPIException() from ex
+            raise exception.VolumeBackendAPIException(data=("Failed to create VLUN for volume %(vol)s ""on host %(host)s: %(ex)s"% {'vol': vol_name, 'host': hostname, 'ex': ex})) from ex
 
     def _safe_hostname(self, connector, configuration):
         """We have to use a safe hostname length for 3PAR host names."""
