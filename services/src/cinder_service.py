@@ -1809,7 +1809,7 @@ class CinderClient(SystemWorkflow,
                         msg = _("Failed to add volume '%(volume)s' to vvset "
                                 "'%(vvs_name)s' because '%(err)s'") % dbg
                         LOG.error(msg)
-                        raise exception.CinderException(msg)
+                        raise exception.CinderException(msg) from ex
 
                 if self._volume_of_hpe_tiramisu_type(volume):
                     hpe_tiramisu = True
@@ -1863,13 +1863,13 @@ class CinderClient(SystemWorkflow,
 
                 return model_update
 
-        except flowkit_exceptions.HTTPForbidden:
-            raise exception.NotAuthorized()
-        except flowkit_exceptions.HTTPNotFound:
-            raise exception.NotFound()
+        except flowkit_exceptions.HTTPForbidden as ex:
+            raise exception.NotAuthorized() from ex
+        except flowkit_exceptions.HTTPNotFound as ex:
+            raise exception.NotFound() from ex
         except Exception as ex:
             LOG.error("Exception: %s", ex)
-            raise exception.CinderException(ex)
+            raise exception.CinderException(ex) from ex
         
     
     def enable_replication(self, context, group, volumes):
@@ -1905,7 +1905,7 @@ class CinderClient(SystemWorkflow,
             # The remote-copy group does not exist or
             # set does not exist.
             if (str(constants.API_ERROR_187) in ex_str or str(constants.API_ERROR_102) in ex_str):
-                raise exception.GroupNotFound(group_id=group.id)
+                raise exception.GroupNotFound(group_id=group.id) from ex
         except flowkit_exceptions.HTTPForbidden as ex:
             ex_str = str(ex)
             LOG.debug("flowkit HTTPForbidden: %s", ex_str)
@@ -1955,7 +1955,7 @@ class CinderClient(SystemWorkflow,
             # The remote-copy group does not exist or
             # set does not exist.
             if (str(constants.API_ERROR_187) in ex_str or str(constants.API_ERROR_102) in ex_str):
-                raise exception.GroupNotFound(group_id=group.id)
+                raise exception.GroupNotFound(group_id=group.id) from ex
 
         except Exception as ex:
             model_update.update({
@@ -2040,6 +2040,7 @@ class CinderClient(SystemWorkflow,
             for volume in volumes:
                 if self._volume_of_replicated_type(volume,
                                                    hpe_tiramisu_check=True):
+                    repl_session_mgr = None
                     try:
                         # Try and stop remote-copy on main array. We eat the
                         # exception here because when an array goes down, the
@@ -2059,8 +2060,24 @@ class CinderClient(SystemWorkflow,
                         LOG.debug("repl_session_mgr: %(session token)s", {'session token': repl_session_mgr.token})
 
                         rcg_wf = RemoteCopyGroupWorkflow(repl_session_mgr, None)
-                        rcg_wf.recover_remote_copy_group_from_disaster(
-                            remote_rcg_name, constants.RC_ACTION_CHANGE_TO_PRIMARY)
+
+                        # Check whether this remote copy group has already
+                        # been failed over by looking at the target roles.
+                        remote_rcg = rcg_wf.get_remote_copy_group(remote_rcg_name)
+                        already_failed_over = any(
+                            t.get('roleReversed') for t in remote_rcg.get('targets', [])
+                        )
+
+                        if already_failed_over:
+                            LOG.info("Remote copy group %(rcg)s for volume %(volume)s is "
+                                     "already in failed-over state; skipping backend "
+                                     "failover action.",
+                                     {'rcg': remote_rcg_name, 'volume': volume['id']})
+                        else:
+                            LOG.debug("Failing over remote copy group %(rcg)s for volume %(volume)s.",
+                                      {'rcg': remote_rcg_name, 'volume': volume['id']})
+                            rcg_wf.recover_remote_copy_group_from_disaster(
+                                remote_rcg_name, constants.RC_ACTION_CHANGE_TO_PRIMARY)
                         volume_update_list.append(
                             {'volume_id': volume['id'],
                              'updates': {'replication_status': 'failed-over',
@@ -2077,7 +2094,8 @@ class CinderClient(SystemWorkflow,
                             {'volume_id': volume['id'],
                              'updates': {'replication_status': 'error'}})
                     finally:
-                        self._destroy_replication_client(repl_session_mgr)
+                        if repl_session_mgr is not None:
+                            self._destroy_replication_client(repl_session_mgr)
                 else:
                     # If the volume is not of replicated type, we need to
                     # force the status into error state so a user knows they
@@ -2111,11 +2129,11 @@ class CinderClient(SystemWorkflow,
         # Check for the existence of the snapshot.
         try:
             snap = super().get_volume(target_snap_name)
-        except flowkit_exceptions.HTTPNotFound:
+        except flowkit_exceptions.HTTPNotFound as ex:
             err = (_("Snapshot '%s' doesn't exist on array.") %
                    target_snap_name)
             LOG.error(err)
-            raise exception.InvalidInput(reason=err)
+            raise exception.InvalidInput(reason=err) from ex
 
         # Make sure the snapshot is being associated with the correct volume.
         parent_vol_name = self._get_3par_vol_name(volume)
@@ -2187,11 +2205,11 @@ class CinderClient(SystemWorkflow,
         # Check for the existence of the snapshot.
         try:
             snap = super().get_volume(target_snap_name)
-        except flowkit_exceptions.HTTPNotFound:
+        except flowkit_exceptions.HTTPNotFound as ex:
             err = (_("Snapshot '%s' doesn't exist on array.") %
                    target_snap_name)
             LOG.error(err)
-            raise exception.InvalidInput(reason=err)
+            raise exception.InvalidInput(reason=err) from ex
 
         return int(math.ceil(float(snap['sizeMiB']) / units.Ki))
     
@@ -2314,7 +2332,11 @@ class CinderClient(SystemWorkflow,
                     remote_rcg_name = self._get_3par_remote_rcg_name(volume,
                                                                      location)
                     rcg = super().get_remote_copy_group(remote_rcg_name)
+                    LOG.debug("rcg_info: %(rcg_info)s", {'rcg_info': rcg})
                     if not self._are_targets_in_their_natural_direction(rcg):
+                        LOG.debug("Remote copy group %(rcg)s for volume %(volume)s is "
+                                  "not in its natural direction.",
+                                  {'rcg': remote_rcg_name, 'volume': volume['id']})
                         return False
 
         except Exception:
@@ -4583,10 +4605,19 @@ class CinderClient(SystemWorkflow,
                     sync_target = {'targetName': target['backend_id'],
                                    'syncPeriod': replication_sync_period}
                     sync_targets.append(sync_target)
-                    policy_target = {'targetName': target['backend_id'],
-                                      'policies': {'autoRecover': True}
-                                     }
-                    policy_targets.append(policy_target)
+                    # If replication mode is SYNC, set autoRecover and autoSynchronize
+                    # policies. If replication mode is PERIODIC, set autoRecover only.
+                    if replication_mode_num == constants.SYNC:
+                        policy_auto_target = {'targetName': target['backend_id'],
+                                        'policies': {'autoRecover': True, 
+                                                    'autoSynchronize': True}
+                                        }
+                        policy_targets.append(policy_auto_target)
+                    else:
+                        policy_target = {'targetName': target['backend_id'],
+                                        'policies': {'autoRecover': True}
+                                        }
+                        policy_targets.append(policy_target)
 
             optional = {'localUserCPG': local_cpg}
             pool = volume_utils.extract_host(volume['host'], level='pool')
@@ -4601,7 +4632,7 @@ class CinderClient(SystemWorkflow,
                          "group: %s.") %
                        str(ex))
                 LOG.error(msg)
-                raise exception.VolumeBackendAPIException(data=msg)
+                raise exception.VolumeBackendAPIException(data=msg) from ex
 
             LOG.debug("created rcg %(name)s", {'name': rcg_name})
 
@@ -4623,7 +4654,7 @@ class CinderClient(SystemWorkflow,
                          "copy group: %s.") %
                        str(ex))
                 LOG.error(msg)
-                raise exception.VolumeBackendAPIException(data=msg)
+                raise exception.VolumeBackendAPIException(data=msg) from ex
 
             # Check and see if we are in periodic mode. If we are, update
             # Remote Copy Group to have a sync period.
@@ -4637,9 +4668,10 @@ class CinderClient(SystemWorkflow,
                              "the remote copy group: %s.") %
                            str(ex))
                     LOG.error(msg)
-                    raise exception.VolumeBackendAPIException(data=msg)
+                    raise exception.VolumeBackendAPIException(data=msg) from ex
                 
                 opt_new = {'targets': policy_targets}
+                LOG.debug("Setting policy targets as %(targets)s", {'targets': policy_targets})
                 try:
                     super().modify_remote_copy_group(rcg_name, opt_new)
                 except Exception as ex:
@@ -4647,53 +4679,76 @@ class CinderClient(SystemWorkflow,
                              "the remote copy group: %s.") %
                            str(ex))
                     LOG.error(msg)
-                    raise exception.VolumeBackendAPIException(data=msg)
+                    raise exception.VolumeBackendAPIException(data=msg) from ex
 
-            # Check if we are in sync mode and quorum_witness_ip is present.
-            # If yes, add options for Peer Persistence (PP)
-            quorum_witness_ip = None
+            # Check if we are in sync mode and, if so, apply
+            # Peer Persistence (PP) policy based on explicit
+            # configuration rather than quorum witness presence.
             if replication_mode_num == constants.SYNC:
                 remote_target = self._replication_targets[0]
                 quorum_witness_ip = remote_target.get('quorum_witness_ip')
                 LOG.debug("quorum_witness_ip %(qip)s", {'qip': quorum_witness_ip})
 
-                if quorum_witness_ip:
-                    LOG.debug('setting pp_params')
+                # Determine replication policy from volume type extra_specs
+                # (if present) or from cinder.conf replication_device.
+                replication_policy = None
+                if extra_specs:
+                    # Prefer an explicit policy from extra specs if set.
+                    replication_policy = (
+                        extra_specs.get('replication:policy') or
+                        extra_specs.get('replication_policy')
+                    )
 
-                    # activeActive policy will also set autoSynchronize and autoRecover policies to the group
-                    # with activeActive policy it does not make sense to set pathManagement explicitely
+                if not replication_policy:
                     replication_policy = remote_target.get('replication_policy')
+
+                if replication_policy:
+                    # Compare policy in a case-insensitive manner.
+                    policy_normalized = replication_policy.lower()
                     LOG.debug("replication_policy %(policy)s", {'policy': replication_policy})
-                    
-                    if replication_policy == constants.ACTIVE_PP_REP_POLICY:
-                        pp_params = {'targets': [
-                        {'policies': {'autoFailover': True,
-                                      'activeActive': True}}]}
+
+                    if policy_normalized == constants.ACTIVE_PP_REP_POLICY:
+                        # activeActive policy will also set autoSynchronize
+                        # and autoRecover policies on the group.
+                        pp_params = {
+                            'targets': [{
+                                'policies': {
+                                    'autoFailover': True,
+                                    'activeActive': True
+                                }
+                            }]
+                        }
                     else:
-                        # default behaviour
-                        pp_params = {'targets': [
-                        {'policies': {'autoFailover': True,
-                                      'pathManagement': True,
-                                      'autoRecover': True,
-                                      'autoSynchronize': True}}]}
+                        # Any explicitly configured policy other than
+                        # active-active is considered invalid.
+                        msg = (_("Invalid replication policy '%(policy)s' "
+                                 "configured for synchronous replication. "
+                                 "Only '%(valid)s' is supported.") %
+                               {"policy": replication_policy,
+                                "valid": constants.ACTIVE_PP_REP_POLICY})
+                        LOG.error(msg)
+                        raise exception.VolumeBackendAPIException(data=msg)
 
                     try:
                         super().modify_remote_copy_group(rcg_name, pp_params)
                     except Exception as ex:
-                        msg = (_("There was an error while modifying remote "
-                                 "copy group: %s.") % str(ex))
+                        msg = _("There was an error while modifying remote "
+                                 "copy group: %s.") % str(ex)
                         LOG.error(msg)
-                        raise exception.VolumeBackendAPIException(data=msg) from ex
+                        raise exception.VolumeBackendAPIException(data=msg)
                 else:
-                    # Ensure autoRecover is enabled for SYNC even when qorum witness is not set
+                    # No replication policy explicitly set: do not fall back
+                    # to classic/pathManagement PP, but still ensure
+                    # autoRecover is enabled for SYNC.
                     opt_auto = {'targets': policy_targets}
+                    LOG.debug("Setting policy targets as %(targets)s", {'targets': policy_targets})
                     try:
                         super().modify_remote_copy_group(rcg_name, opt_auto)
                     except Exception as ex:
                         msg = (_("There was an error setting autoRecover for the "
                                  "remote copy group: %s.") % str(ex))
                         LOG.error(msg)
-                        raise exception.VolumeBackendAPIException(data=msg) from ex
+                        raise exception.VolumeBackendAPIException(data=msg)
 
             # Start the remote copy.
             try:
@@ -5236,8 +5291,15 @@ class CinderClient(SystemWorkflow,
 
         targets = rcg['targets']
         for target in targets:
+            LOG.debug("target %(target)s, roleReversed: %(roleReversed)s, "
+                      "state: %(state)s",
+                      {'target': target['targetName'],
+                       'roleReversed': target['roleReversed'],
+                       'state': target['state']})
             if target['roleReversed'] or (
                target['state'] != constants.RC_GROUP_STARTED):
+                LOG.debug("Target %(target)s is not in its natural direction.",
+                          {'target': target['targetName']})
                 return False
 
         # Make sure all volumes are fully synced.
@@ -5245,7 +5307,13 @@ class CinderClient(SystemWorkflow,
         for volume in volumes:
             remote_volumes = volume['remoteVolumes']
             for remote_volume in remote_volumes:
-                if remote_volume['syncStatus'] != (
+                remote_volume_name = remote_volume['remoteVolumeName']
+                sync_status = remote_volume.get('syncStatus')
+                LOG.debug("remote_volume %(remote_volume)s, syncStatus: "
+                          "%(syncStatus)s",
+                          {'remote_volume': remote_volume_name,
+                           'syncStatus': sync_status})
+                if sync_status != (
                    constants.SYNC_STATUS_COMPLETED):
                     return False
         return True
@@ -5261,15 +5329,37 @@ class CinderClient(SystemWorkflow,
         except Exception:
             pass
 
+        # Failover to secondary array.
+        remote_rcg_name = self._get_3par_remote_rcg_name_of_group(
+            group.id, provider_location)
+
+        repl_session_mgr = None
         try:
-            # Failover to secondary array.
-            remote_rcg_name = self._get_3par_remote_rcg_name_of_group(
-                group.id, provider_location)
-            
-            repl_session_mgr = self._create_replication_client(failover_target)
+            repl_session_mgr = self._create_replication_client(
+                failover_target)
             rcg_wf = RemoteCopyGroupWorkflow(repl_session_mgr, None)
-            rcg_wf.recover_remote_copy_group_from_disaster(
-                remote_rcg_name, constants.RC_ACTION_CHANGE_TO_PRIMARY)
+
+            # Check the current role/direction of the remote copy group
+            # on the secondary array. If it is already not in its natural
+            # direction, we assume the group has already been failed over
+            # and simply skip issuing another failover action while letting
+            # Cinder update status as requested.
+            remote_rcg = rcg_wf.get_remote_copy_group(remote_rcg_name)
+            already_failed_over = any(
+                            t.get('roleReversed') for t in remote_rcg.get('targets', [])
+                        )
+            if already_failed_over:
+                LOG.info("Remote copy group %(rcg)s for group %(group)s is "
+                         "already in failed-over state; skipping backend "
+                         "failover action.",
+                         {'rcg': remote_rcg_name, 'group': group.id})
+            else:
+                LOG.debug("Issuing failover action for remote copy group %(rcg)s for "
+                          "group %(group)s.",
+                          {'rcg': remote_rcg_name, 'group': group.id})
+
+                rcg_wf.recover_remote_copy_group_from_disaster(
+                    remote_rcg_name, constants.RC_ACTION_CHANGE_TO_PRIMARY)
         except Exception as ex:
             msg = (_("There was a problem with the failover: "
                      "(%(error)s) and it was unsuccessful.") %
@@ -5277,13 +5367,15 @@ class CinderClient(SystemWorkflow,
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg) from ex
         finally:
-            self._destroy_replication_client(repl_session_mgr)
+            if repl_session_mgr is not None:
+                self._destroy_replication_client(repl_session_mgr)
 
 
     def _group_failback_replication(self, failback_target, group,
                                     provider_location):
         remote_rcg_name = self._get_3par_remote_rcg_name_of_group(
             group.id, provider_location)
+        repl_session_mgr = None
         try:
             repl_session_mgr = self._create_replication_client(failback_target)
             rcg_wf = RemoteCopyGroupWorkflow(repl_session_mgr, None)
@@ -5296,7 +5388,8 @@ class CinderClient(SystemWorkflow,
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg) from ex
         finally:
-            self._destroy_replication_client(repl_session_mgr)
+            if repl_session_mgr is not None:
+                self._destroy_replication_client(repl_session_mgr)
 
         if not self._are_targets_in_their_natural_direction(remote_rcg):
             msg = _("The host is not ready to be failed back. Please "
