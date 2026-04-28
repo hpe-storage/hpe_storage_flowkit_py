@@ -295,10 +295,10 @@ class VLUNWorkflow:
         print("nvme_ports: %(ports)s", {'ports': nvme_ports})
         return nvme_ports 
 
-    def get_matched_array_ips_and_ports(self, client_conf):
+    def get_matched_array_ips_and_ports(self, nvme_ips)
         temp_nvme_ip = {}
         nvme_ip_list = {}
-        conf_ips = client_conf['hpe3par_nvme_ips']
+        conf_ips = nvme_ips
 
         for ip_addr in conf_ips:
             # "ip"(given by user in cinder conf)
