@@ -21,3 +21,6 @@ Users can override these values by modifying this file
 # Task polling configuration
 TASK_POLL_RATE_SECS = 3  # Default polling interval in seconds
 TASK_TIMEOUT_SECS = 1200  # Default timeout in seconds (20 minutes)
+
+# Remote Copy Group actions
+RC_GROUP_ADMIT_HOST = 'RC_GROUP_ADMIT_HOST'

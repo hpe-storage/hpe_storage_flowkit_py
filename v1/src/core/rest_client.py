@@ -124,7 +124,7 @@ class RESTClient:
             except (ValueError, AttributeError):
                 pass
             if error_code == 34:
-                 raise exceptions.HTTPConflict(f"Resource is in use. Error code 34: {error_desc}")
+                raise exceptions.HTTPConflict(f"Resource is in use. Error code 34: {error_desc}")
             if error_code == 151:
                 raise exceptions.HTTPConflict(f"Volume tuning is in progress. Error code 151: {error_desc}")
             if error_code == 32:

@@ -225,3 +225,11 @@ class AuthenticationError(HPEStorageException):
 		super().__init__(self.message)
 
 
+class RemoteCopyGroupDoesNotExist(HPEStorageException):
+	"""Raised when attempting to access a remote copy group that does not exist."""
+	def __init__(self, name=None, message=None):
+		self.name = name
+		self.message = message or f"Remote copy group '{name}' does not exist."
+		super().__init__(self.message)
+
+
