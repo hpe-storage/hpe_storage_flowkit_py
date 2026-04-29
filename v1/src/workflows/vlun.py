@@ -295,7 +295,7 @@ class VLUNWorkflow:
         print("nvme_ports: %(ports)s", {'ports': nvme_ports})
         return nvme_ports 
 
-    def get_matched_array_ips_and_ports(self, nvme_ips)
+    def get_matched_array_ips_and_ports(self, nvme_ips):
         temp_nvme_ip = {}
         nvme_ip_list = {}
         conf_ips = nvme_ips
