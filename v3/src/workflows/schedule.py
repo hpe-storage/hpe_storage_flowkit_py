@@ -15,12 +15,12 @@
 #
 from hpe_storage_flowkit_py.v3.src.core.exceptions import HPEStorageException, ScheduleDoesNotExist, ScheduleAlreadyExists
 from hpe_storage_flowkit_py.v3.src.core.session import SessionManager
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
+import logging
 from hpe_storage_flowkit_py.v3.src.workflows.task import TaskManager
 from hpe_storage_flowkit_py.v3.src.validators.schedule_validator import validate_schedule_params, validate_modify_schedule_params,validate_suspend_resume_schedule_params
 from hpe_storage_flowkit_py.v3.src.utils.utils import _convert_to_seconds,handle_async_response
 
-logger = Logger()
+logger = logging.getLogger('flowkit')
 
 
 class ScheduleWorkflow:

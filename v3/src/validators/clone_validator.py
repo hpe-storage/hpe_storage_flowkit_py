@@ -13,9 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
+import logging
 
-logger = Logger()
+logger = logging.getLogger('flowkit')
 
 def validate_clone_params(src_name=None,dest_name=None, params=None):
     """

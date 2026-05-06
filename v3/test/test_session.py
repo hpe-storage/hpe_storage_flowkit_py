@@ -23,7 +23,7 @@ class TestSessionManager(unittest.TestCase):
         SessionManager._session_cache.clear()
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_init_creates_session_manager(self, mock_logger, mock_rest_client):
         """Test SessionManager initialization"""
         mock_rest_instance = Mock()
@@ -54,7 +54,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertEqual(len(key1), 64)
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_login_success(self, mock_logger, mock_rest_client):
         """Test successful login"""
         mock_rest_instance = Mock()
@@ -70,7 +70,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertEqual(session_mgr.session.headers['Authorization'], 'Bearer test_token_abc123')
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_login_empty_response(self, mock_logger, mock_rest_client):
         """Test login with empty response"""
         mock_rest_instance = Mock()
@@ -85,7 +85,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertIn("Empty response from login API", str(context.exception))
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_login_no_token_in_response(self, mock_logger, mock_rest_client):
         """Test login with response missing token"""
         mock_rest_instance = Mock()
@@ -100,7 +100,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertIn("Failed to obtain session token", str(context.exception))
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_login_api_exception(self, mock_logger, mock_rest_client):
         """Test login when API raises exception"""
         mock_rest_instance = Mock()
@@ -116,7 +116,7 @@ class TestSessionManager(unittest.TestCase):
 
     @patch('src.core.session.time.time')
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_cached_session_reuse(self, mock_logger, mock_rest_client, mock_time):
         """Test that cached session is reused when not expired"""
         mock_time.return_value = 1000.0
@@ -145,7 +145,7 @@ class TestSessionManager(unittest.TestCase):
 
     @patch('src.core.session.time.time')
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_cached_session_expiry(self, mock_logger, mock_rest_client, mock_time):
         """Test that expired cached session is recreated"""
         mock_time.return_value = 1000.0
@@ -180,7 +180,7 @@ class TestSessionManager(unittest.TestCase):
 
     @patch('src.core.session.time.time')
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_get_token_returns_current_token(self, mock_logger, mock_rest_client, mock_time):
         """Test get_token returns current valid token"""
         mock_time.return_value = 1000.0
@@ -202,7 +202,7 @@ class TestSessionManager(unittest.TestCase):
 
     @patch('src.core.session.time.time')
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_get_token_refreshes_expired_token(self, mock_logger, mock_rest_client, mock_time):
         """Test get_token refreshes expired token"""
         mock_time.return_value = 1000.0
@@ -232,7 +232,7 @@ class TestSessionManager(unittest.TestCase):
         mock_rest_instance.delete.assert_called()
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_validate_token_success(self, mock_logger, mock_rest_client):
         """Test validate_token with valid token"""
         mock_rest_instance = Mock()
@@ -250,7 +250,7 @@ class TestSessionManager(unittest.TestCase):
         mock_rest_instance.get.assert_called_once_with("/credentials")
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_validate_token_no_token(self, mock_logger, mock_rest_client):
         """Test validate_token with no token"""
         mock_rest_instance = Mock()
@@ -267,7 +267,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertFalse(is_valid)
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_validate_token_api_error(self, mock_logger, mock_rest_client):
         """Test validate_token when API call fails"""
         mock_rest_instance = Mock()
@@ -284,7 +284,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertFalse(is_valid)
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_ensure_session_with_valid_token(self, mock_logger, mock_rest_client):
         """Test ensure_session when token is already valid"""
         mock_rest_instance = Mock()
@@ -304,7 +304,7 @@ class TestSessionManager(unittest.TestCase):
 
     @patch('src.core.session.time.time')
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_ensure_session_refreshes_invalid_token(self, mock_logger, mock_rest_client, mock_time):
         """Test ensure_session refreshes invalid token"""
         mock_time.return_value = 1000.0
@@ -332,7 +332,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertEqual(mock_rest_instance.post.call_count, 2)
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_get_session_returns_session_object(self, mock_logger, mock_rest_client):
         """Test get_session returns session object"""
         mock_rest_instance = Mock()
@@ -349,7 +349,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertEqual(session, mock_session)
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_delete_session(self, mock_logger, mock_rest_client):
         """Test delete_session removes token and cache"""
         mock_rest_instance = Mock()
@@ -375,7 +375,7 @@ class TestSessionManager(unittest.TestCase):
         mock_rest_instance.delete.assert_called_once_with("/credentials/test_token_delete")
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_set_and_get_session_data(self, mock_logger, mock_rest_client):
         """Test set and get session data methods"""
         mock_rest_instance = Mock()
@@ -397,7 +397,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertEqual(session_mgr.get("non_existent", "default"), "default")
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_clear_session_data(self, mock_logger, mock_rest_client):
         """Test clear session data method"""
         mock_rest_instance = Mock()
@@ -420,7 +420,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertIsNone(session_mgr.get("key2"))
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_session_data_methods_without_session_data_attr(self, mock_logger, mock_rest_client):
         """Test session data methods create session_data if it doesn't exist"""
         mock_rest_instance = Mock()
@@ -441,7 +441,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertTrue(hasattr(session_mgr, 'session_data'))
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_login_clears_authorization_header(self, mock_logger, mock_rest_client):
         """Test that login clears any existing Authorization header before logging in"""
         mock_rest_instance = Mock()
@@ -457,7 +457,7 @@ class TestSessionManager(unittest.TestCase):
 
     @patch('src.core.session.time.time')
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_get_token_with_no_token(self, mock_logger, mock_rest_client, mock_time):
         """Test get_token when token is None"""
         mock_time.return_value = 1000.0
@@ -484,7 +484,7 @@ class TestSessionManager(unittest.TestCase):
 
     @patch('src.core.session.time.time')
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_cached_session_expiry_with_delete_failure(self, mock_logger, mock_rest_client, mock_time):
         """Test that expired cached session is recreated even when delete fails"""
         mock_time.return_value = 1000.0
@@ -519,7 +519,7 @@ class TestSessionManager(unittest.TestCase):
 
     @patch('src.core.session.time.time')
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
-    @patch('hpe_storage_flowkit_py.v3.src.core.session.Logger')
+    @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
     def test_get_token_refresh_with_delete_failure(self, mock_logger, mock_rest_client, mock_time):
         """Test get_token refreshes token even when delete of old token fails"""
         mock_time.return_value = 1000.0

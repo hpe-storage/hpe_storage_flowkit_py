@@ -34,7 +34,7 @@ from hpe_storage_flowkit_py.v3.src.core.session import SessionManager
 from hpe_storage_flowkit_py.v3.src.workflows.task import TaskManager
 from hpe_storage_flowkit_py.v3.src.validators.user_validator import (validate_user_params, validate_modify_user_params, 
                                          validate_modify_payload, validate_user_uid)
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
+import logging
 from hpe_storage_flowkit_py.v3.src.utils.utils import handle_async_response
 
 # HTTP Status Code Constants
@@ -44,7 +44,7 @@ HTTP_CONFLICT = 409
 HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
 
-logger = Logger()
+logger = logging.getLogger('flowkit')
 
 
 class UserWorkflow:

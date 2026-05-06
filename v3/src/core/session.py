@@ -17,8 +17,8 @@ from hpe_storage_flowkit_py.v3.src.core.rest_client import RESTClient
 import hashlib
 import threading
 import time
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
-log=Logger()
+import logging
+log = logging.getLogger('flowkit')
 
 class SessionManager:
     _session_cache = {}
@@ -149,6 +149,7 @@ class SessionManager:
     def ensure_session(self):
         """Ensure we have a valid session token"""
         # First check if current token is valid
+        log.info("Ensuring v3 session token is valid")
         if self.token and self.validate_token():
             return self.token
         # If not valid, get a new token

@@ -15,9 +15,9 @@
 #
 """Validator functions for Remote Copy Group operations."""
 
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
+import logging
 
-logger = Logger()
+logger = logging.getLogger('flowkit')
 
 VALID_PROXIMITY_VALUES = {"primary", "secondary", "all"}
 

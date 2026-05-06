@@ -15,12 +15,12 @@
 #
 from hpe_storage_flowkit_py.v3.src.core.exceptions import HPEStorageException, QosDoesNotExist, QosAlreadyExists
 from hpe_storage_flowkit_py.v3.src.core.session import SessionManager  
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
+import logging
 from hpe_storage_flowkit_py.v3.src.validators.qos_validator import validate_qos_params
 from hpe_storage_flowkit_py.v3.src.utils.utils import handle_async_response
 from hpe_storage_flowkit_py.v3.src.workflows.task import TaskManager
 
-logger = Logger()
+logger = logging.getLogger('flowkit')
 
 class QosWorkflow:
 

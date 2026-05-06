@@ -15,8 +15,8 @@
 #
 import requests
 from hpe_storage_flowkit_py.v3.src.core.exceptions import HPEStorageException, HTTPError
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
-log=Logger()
+import logging
+log = logging.getLogger('flowkit')
 class RESTClient:
     # Sensitive fields that should be masked in logs
     SENSITIVE_FIELDS = {'password', 'token', 'key', 'secret', 'authorization'}

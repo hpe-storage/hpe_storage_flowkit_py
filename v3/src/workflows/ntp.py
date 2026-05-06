@@ -31,10 +31,10 @@ from hpe_storage_flowkit_py.v3.src.core import exceptions
 from hpe_storage_flowkit_py.v3.src.core.session import SessionManager
 from hpe_storage_flowkit_py.v3.src.workflows.task import TaskManager
 from hpe_storage_flowkit_py.v3.src.validators.ntp_validator import validate_ntp_params
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
+import logging
 from hpe_storage_flowkit_py.v3.src.utils.utils import handle_async_response
 
-logger = Logger()
+logger = logging.getLogger('flowkit')
 
 
 class NTPWorkflow:

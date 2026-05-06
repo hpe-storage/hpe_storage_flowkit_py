@@ -21,8 +21,8 @@ from hpe_storage_flowkit_py.v3.src.core.exceptions import HostDoesNotExist
 from hpe_storage_flowkit_py.v3.src.core.session import SessionManager
 from hpe_storage_flowkit_py.v3.src.validators.host_validator import validate_host_params
 from hpe_storage_flowkit_py.v3.src.validators.host_validator import validate_host_optional_params
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
-logger = Logger()
+import logging
+logger = logging.getLogger('flowkit')
 class HostWorkflow:
 
 	def __init__(self, session_mgr: SessionManager):

@@ -15,8 +15,8 @@
 #
 import re
 
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
-log = Logger()
+import logging
+log = logging.getLogger('flowkit')
 
 def validate_vlun_params(volname, hostname):
 	if not isinstance(volname, str) or not volname.strip() or not isinstance(hostname, str)or not hostname.strip():

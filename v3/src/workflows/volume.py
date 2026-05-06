@@ -16,10 +16,10 @@
 from hpe_storage_flowkit_py.v3.src.core.exceptions import HPEStorageException, VolumeDoesNotExist, VolumeAlreadyExists
 from hpe_storage_flowkit_py.v3.src.core.session import SessionManager
 from hpe_storage_flowkit_py.v3.src.validators.volume_validator import validate_create_volume_params, validate_modify_volume_params, validate_volume_params ,validate_tune_volume_params
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
+import logging
 from hpe_storage_flowkit_py.v3.src.utils.utils import _convert_size_to_mib, _convert_to_seconds, handle_async_response
 from hpe_storage_flowkit_py.v3.src.workflows.task import TaskManager
-logger = Logger()
+logger = logging.getLogger('flowkit')
 
 class VolumeWorkflow:
 

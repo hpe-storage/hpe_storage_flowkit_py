@@ -15,12 +15,12 @@
 #
 from hpe_storage_flowkit_py.v3.src.core.exceptions import HPEStorageException, VolumeDoesNotExist, VolumeAlreadyExists
 from hpe_storage_flowkit_py.v3.src.core.session import  SessionManager
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
+import logging
 from hpe_storage_flowkit_py.v3.src.validators.snapshot_validator import validate_snapshot_params ,validate_promote_snapshot_volume_params
 from hpe_storage_flowkit_py.v3.src.utils.utils import _convert_to_seconds,handle_async_response
 from hpe_storage_flowkit_py.v3.src.workflows.task import TaskManager
 import re
-logger = Logger()
+logger = logging.getLogger('flowkit')
 
 
 class SnapshotWorkflow:

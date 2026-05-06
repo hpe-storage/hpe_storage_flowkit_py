@@ -15,10 +15,10 @@
 #
 import time
 from hpe_storage_flowkit_py.v3.src.core.exceptions import HPEStorageException
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
+import logging
 from hpe_storage_flowkit_py.v3.src.core.session import SessionManager
 from hpe_storage_flowkit_py.v3.src.utils.constants import TASK_POLL_RATE_SECS, TASK_TIMEOUT_SECS
-logger = Logger()
+logger = logging.getLogger('flowkit')
 
 class TaskManager:
     """Manages asynchronous task operations"""

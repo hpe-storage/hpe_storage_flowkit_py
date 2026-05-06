@@ -24,9 +24,9 @@ Rules:
 """
 
 
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
+import logging
 
-logger = Logger()
+logger = logging.getLogger('flowkit')
 
 NAME_MIN = 1
 NAME_MAX = 27

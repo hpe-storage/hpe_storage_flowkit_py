@@ -188,21 +188,27 @@ pip install pytest mock
 Run all tests:
 
 ```bash
-python3 -m pytest hpe_storage_flowkit_py --import-mode=importlib
+python3 -m pytest v1/test v3/test --import-mode=importlib
 ```
 
 Run a specific test file:
 
 ```bash
-python3 -m pytest hpe_storage_flowkit_py/services/test/test_ansible_service.py --import-mode=importlib
+python3 -m pytest v3/test/<test_file_name.py> --import-mode=importlib
+```
+
+For example:
+
+```bash
+python3 -m pytest v3/test/test_volume.py --import-mode=importlib
 ```
 
 Run a specific test method:
 
 ```bash
-python3 -m pytest hpe_storage_flowkit_py/services/test/test_ansible_service.py::TestClassName::test_method_name --import-mode=importlib
+python3 -m pytest v3/test/<test_file_name.py>::TestClassName::test_method_name --import-mode=importlib
 ```
-Note: Make sure to run the command from the directly where hpe_storage_flowkit_py lies and python path is set to that directly
+Note: Make sure to run the commands from inside the `hpe_storage_flowkit_py` directory.
 
 ## License
 

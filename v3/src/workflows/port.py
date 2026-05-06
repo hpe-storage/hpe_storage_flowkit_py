@@ -16,8 +16,8 @@
 from typing import Any, List, Dict
 
 from hpe_storage_flowkit_py.v3.src.core.session import SessionManager
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
-logger = Logger()
+import logging
+logger = logging.getLogger('flowkit')
 class PortWorkflow:
 
 	def __init__(self, session_mgr: SessionManager):

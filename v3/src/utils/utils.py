@@ -15,8 +15,8 @@
 #
 # utils helper file
 # Add any utility functions or classes here that can be shared across modules
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
-logger=Logger()
+import logging
+logger = logging.getLogger('flowkit')
 FINAL_TASK_STATES = {
         "STATE_FINISHED",
         "STATE_FAILED",

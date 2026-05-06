@@ -13,8 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 #
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
-log = Logger()
+import logging
+log = logging.getLogger('flowkit')
 
 def validate_host_params(name):
 	if not isinstance(name, str) or not name.strip():

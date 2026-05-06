@@ -15,11 +15,11 @@
 #
 from hpe_storage_flowkit_py.v3.src.core.exceptions import HPEStorageException, CpgDoesNotExist, CpgAlreadyExists
 from hpe_storage_flowkit_py.v3.src.core.session import SessionManager
-from hpe_storage_flowkit_py.v3.src.core.logger import Logger
+import logging
 from hpe_storage_flowkit_py.v3.src.validators.cpg_validator import validate_cpg_params
 from hpe_storage_flowkit_py.v3.src.utils.utils import _convert_size_to_mib,handle_async_response
 from hpe_storage_flowkit_py.v3.src.workflows.task import TaskManager
-logger = Logger()
+logger = logging.getLogger('flowkit')
  
 class CpgWorkflow:
     def __init__(self, session_mgr: SessionManager,task_manager: TaskManager):
