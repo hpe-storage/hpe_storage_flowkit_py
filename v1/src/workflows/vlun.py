@@ -484,66 +484,6 @@ class VLUNWorkflow:
 
         return lun_id_next
 
-    def create_vlun_nvme(self, vol_name_3par, host, nvme_ips):
-        """Create a VLUN for NVMe host.
-        :param vol_name_3par: The name of the volume on 3PAR.
-        :param host: The host object containing host information.
-        :param nvme_ips: The NVMe IPs to use for the VLUN.
-        :returns: A tuple containing a list of portals and target NQNs.
-        :rtype: tuple
-        """
-
-        # Collect all existing VLUNs for this volume/host combination.
-        existing_vluns = self.find_existing_vluns(vol_name_3par, host)
-        #logger.debug("existing_vluns: %(ev)s", {'ev': existing_vluns})
-        print("existing_vluns: %(ev)s", {'ev': existing_vluns})
-        host_name = host['name']
-        portals = []
-        target_nqns = []
-        lun_id = None
-        # check for an already existing VLUN matching the
-        # nsp for this nvme IP. If one is found, use it
-        # instead of creating a new VLUN.
-        if existing_vluns:
-            for v in existing_vluns:
-                lun_id = v['lun']
-                #logger.debug("vlun exists for host name: %(host)s" \
-                #             " with lun: %(lun)s",
-                #             {'host': host_name, 'lun': v['lun']})
-                print("vlun exists for host name: %(host)s" \
-                        " with lun: %(lun)s",
-                        {'host': host_name, 'lun': v['lun']})
-                break 
-        else:
-            #logger.debug("creating vlun for host name: %(host)s",
-            #             {'host': host_name})
-            print("creating vlun for host name: %(host)s",
-                    {'host': host_name})
-            if lun_id is None:
-                #logger.debug("lun_id is None. calling getNextLunId")
-                lun_id = self.getNextLunId(host_name)
-                #logger.debug("lun_id_next: %(id)s", {'id': lun_id})
-
-        #logger.debug("lun_id is %(id)s", {'id': lun_id})
-        #location = self.createVLUN(vol_name_3par, lun=lun_id,
-        #                           hostname=host_name)
-        #logger.debug("location: %(loc)s", {'loc': location})
-        params = {}
-        params['lun'] = lun_id
-        self.create_vlun(vol_name_3par, host_name, params)
-        target_portal_ips = list(nvme_ips.keys())
-        for nvme_ip in target_portal_ips:
-            portals.append(
-                (nvme_ip, nvme_ips[nvme_ip]['ip_port'], 'tcp')
-                )
-        vlun = self.getVLUN(vol_name_3par)
-        nqn_of_vlun = vlun['Subsystem_NQN']
-        #logger.debug("nqn_of_vlun: %(nqn)s", {'nqn': nqn_of_vlun})
-        target_nqns.append(nqn_of_vlun)
-
-        ret_vals = (portals, target_nqns)
-        return ret_vals
-
     def remove_vlun_nvme(self, vol_name_3par, hostname, host_nqn):
         vlunsData = self.getVLUN(vol_name_3par, True)
         print("vlunsData: ", vlunsData)
