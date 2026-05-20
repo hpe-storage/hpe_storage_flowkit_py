@@ -83,12 +83,11 @@ class SessionManager:
             raise Exception("Failed to obtain session token.")
         return self.token
 
-
     def get_token(self):
-        now = time.time()
         # Refresh if expired
-        if not self.token or (self._session_created and now - self._session_created > SessionManager._SESSION_TIMEOUT):
-            with SessionManager._lock:
+        with SessionManager._lock:
+            now = time.time()
+            if not self.token or (self._session_created and now - self._session_created > SessionManager._SESSION_TIMEOUT):
                 self.login()
                 SessionManager._session_cache[self._session_key] = {
                     'token': self.token,
@@ -102,10 +101,8 @@ class SessionManager:
     def ensure_session(self):
         return self.get_token()
 
-
     def get_session(self):
         return self.session
-
 
     def delete_session(self):
         with SessionManager._lock:
@@ -115,18 +112,15 @@ class SessionManager:
                 if self._session_key in SessionManager._session_cache:
                     del SessionManager._session_cache[self._session_key]
 
-
     def set(self, key, value):
         if not hasattr(self, 'session_data'):
             self.session_data = {}
         self.session_data[key] = value
 
-
     def get(self, key, default=None):
         if not hasattr(self, 'session_data'):
             self.session_data = {}
         return self.session_data.get(key, default)
-
 
     def clear(self):
         if hasattr(self, 'session_data'):

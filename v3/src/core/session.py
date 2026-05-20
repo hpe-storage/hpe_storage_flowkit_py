@@ -111,17 +111,10 @@ class SessionManager:
 
 
     def get_token(self):
-        now = time.time()
         # Refresh if expired or token is None
-        if not self.token or (self._session_created and now - self._session_created > SessionManager._SESSION_TIMEOUT):
-            with SessionManager._lock:
-                # Delete old token if it exists
-                if self.token:
-                    try:
-                        self.rest_client.delete(f"/credentials/{self.token}")
-                    except Exception:
-                        pass
-                
+        with SessionManager._lock:
+            now = time.time()
+            if not self.token or (self._session_created and now - self._session_created > SessionManager._SESSION_TIMEOUT):
                 self.login()
                 SessionManager._session_cache[self._session_key] = {
                     'token': self.token,
