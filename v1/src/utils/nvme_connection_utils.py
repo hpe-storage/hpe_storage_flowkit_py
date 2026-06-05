@@ -44,16 +44,14 @@ def create_vlun_nvme(vlun_wf, vol_name_3par, host, nvme_ips):
                          " with lun: %(lun)s",
                          {'host': host_name, 'lun': v['lun']})
             break
-
-    params = {}
-    if lun_id is not None:
-        params['lun'] = lun_id
     else:
+        params = {}
         logger.info("Lun ID is None so setting autoLun to True")
         params['autoLun'] = True
         params['maxAutoLun'] = 0
         params['lun'] = 0
-    vlun_wf.create_vlun(vol_name_3par, host_name, params)
+        vlun_wf.create_vlun(vol_name_3par, host_name, params)
+
     target_portal_ips = list(nvme_ips.keys())
     for nvme_ip in target_portal_ips:
         portals.append(

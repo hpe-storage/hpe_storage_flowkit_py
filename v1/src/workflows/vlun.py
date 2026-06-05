@@ -326,7 +326,7 @@ class VLUNWorkflow:
             #    {'code': 'NON_EXISTENT_NVME_PORTS',
             #     'desc': msg})
             print("error: ", msg)
-            raise Exception(msg)
+            raise HPEStorageException(msg)
         for port in nvme_ports:
             ip = port['nodeWWN']
             if ip in temp_nvme_ip:
@@ -360,7 +360,7 @@ class VLUNWorkflow:
             #    {'code': 'NON_EXISTENT_NVME_IP',
             #     'desc': msg})
             print("error: ", msg)
-            raise Exception(msg)
+            raise HPEStorageException(msg)
 
         ret_vals = (nvme_ip_list, nvme_ports)
         return ret_vals
