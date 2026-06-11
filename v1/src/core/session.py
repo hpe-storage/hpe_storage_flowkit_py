@@ -75,6 +75,8 @@ class SessionManager:
             self._session_created = SessionManager._session_cache[self._session_key]['created']
 
     def login(self):
+        if "X-HP3PAR-WSAPI-SessionKey" in self.session.headers:
+            del self.session.headers['X-HP3PAR-WSAPI-SessionKey']
         response = self.rest_client.post("/credentials", {"user": self.username, "password": self.password})
         self.token = response.get("key")
         if self.token:
