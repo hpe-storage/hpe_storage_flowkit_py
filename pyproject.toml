@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hpe-storage-flowkit-py"
-version = "0.1.0"
+version = "0.9.3"
 description = "Python client library for interacting with HPE Alletra MP storage arrays."
 readme = "README.md"
 requires-python = ">=3.10"

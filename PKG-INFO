@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: hpe-storage-flowkit-py
-Version: 0.1.0
+Version: 0.9.3
 Summary: Python client library for interacting with HPE Alletra MP storage arrays.
 Author: Hewlett Packard Enterprise Development LP
 License: Apache-2.0
