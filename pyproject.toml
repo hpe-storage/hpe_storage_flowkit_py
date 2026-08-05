@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hpe-storage-flowkit-py"
-version = "0.9.3"
+version = "0.9.4"
 description = "Python client library for interacting with HPE Alletra MP storage arrays."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,8 +13,8 @@ authors = [
     { name = "Hewlett Packard Enterprise Development LP" }
 ]
 dependencies = [
-    "paramiko==4.0.0",
-    "requests==2.32.5"
+    "paramiko",
+    "requests"
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -35,19 +35,4 @@ classifiers = [
 include-package-data = true
 packages = [
     "hpe_storage_flowkit_py",
-    "hpe_storage_flowkit_py.v1",
-    "hpe_storage_flowkit_py.v1.src",
-    "hpe_storage_flowkit_py.v1.src.core",
-    "hpe_storage_flowkit_py.v1.src.utils",
-    "hpe_storage_flowkit_py.v1.src.validators",
-    "hpe_storage_flowkit_py.v1.src.workflows",
-    "hpe_storage_flowkit_py.v3",
-    "hpe_storage_flowkit_py.v3.src",
-    "hpe_storage_flowkit_py.v3.src.core",
-    "hpe_storage_flowkit_py.v3.src.utils",
-    "hpe_storage_flowkit_py.v3.src.validators",
-    "hpe_storage_flowkit_py.v3.src.workflows"
 ]
-
-[tool.setuptools.package-dir]
-"hpe_storage_flowkit_py" = "."
