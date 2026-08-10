@@ -33,6 +33,5 @@ classifiers = [
 
 [tool.setuptools]
 include-package-data = true
-packages = [
-    "hpe_storage_flowkit_py",
-]
+[tool.setuptools.packages.find]
+include = ["hpe_storage_flowkit_py*"]
