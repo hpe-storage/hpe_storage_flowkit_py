@@ -82,7 +82,7 @@ class TestTaskManager(unittest.TestCase):
 		
 		self.session_mgr.rest_client.get.assert_called_with('/tasks/extracted_id')
 
-	@patch('src.workflows.task.time.sleep', return_value=None)
+	@patch('hpe_storage_flowkit_py.v3.src.workflows.task.time.sleep', return_value=None)
 	def test_wait_for_task_polling_multiple_times(self, mock_sleep):
 		"""Test task polling through multiple status checks."""
 		# Simulate task progressing from running to finished
@@ -160,8 +160,8 @@ class TestTaskManager(unittest.TestCase):
 		
 		self.assertIn('Failed to poll task status', str(context.exception))
 
-	@patch('src.workflows.task.time.time')
-	@patch('src.workflows.task.time.sleep', return_value=None)
+	@patch('hpe_storage_flowkit_py.v3.src.workflows.task.time.time')
+	@patch('hpe_storage_flowkit_py.v3.src.workflows.task.time.sleep', return_value=None)
 	def test_wait_for_task_timeout_elapsed_time(self, mock_sleep, mock_time):
 		"""Test task timeout using elapsed time check."""
 		# Mock time with a callable that returns start time on first call, then timeout values
@@ -183,10 +183,10 @@ class TestTaskManager(unittest.TestCase):
 		
 		self.assertIn('did not complete within timeout', str(context.exception))
 
-	@patch('src.workflows.task.time.time')
-	@patch('src.workflows.task.time.sleep', return_value=None)
-	@patch('src.workflows.task.TASK_TIMEOUT_SECS', 10)
-	@patch('src.workflows.task.TASK_POLL_RATE_SECS', 3)
+	@patch('hpe_storage_flowkit_py.v3.src.workflows.task.time.time')
+	@patch('hpe_storage_flowkit_py.v3.src.workflows.task.time.sleep', return_value=None)
+	@patch('hpe_storage_flowkit_py.v3.src.workflows.task.TASK_TIMEOUT_SECS', 10)
+	@patch('hpe_storage_flowkit_py.v3.src.workflows.task.TASK_POLL_RATE_SECS', 3)
 	def test_wait_for_task_timeout_max_attempts(self, mock_sleep, mock_time):
 		"""Test task timeout after max attempts."""
 		# Simulate time not advancing but hitting max attempts
