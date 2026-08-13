@@ -228,8 +228,8 @@ class TestSessionManager(unittest.TestCase):
         
         self.assertNotEqual(old_token, new_token)
         self.assertEqual(new_token, "new_token")
-        # Should delete old token
-        mock_rest_instance.delete.assert_called()
+        # Refresh re-logs in (login called twice: init + refresh)
+        self.assertEqual(mock_rest_instance.post.call_count, 2)
 
     @patch('hpe_storage_flowkit_py.v3.src.core.session.RESTClient')
     @patch('hpe_storage_flowkit_py.v3.src.core.session.logging.getLogger')
@@ -541,13 +541,13 @@ class TestSessionManager(unittest.TestCase):
         # Move time beyond expiry
         mock_time.return_value = 1000.0 + (15 * 60)
         
-        # Get token should refresh despite delete failure
+        # Get token should refresh
         new_token = session_mgr.get_token()
         
         self.assertNotEqual(old_token, new_token)
         self.assertEqual(new_token, "new_token")
-        # Should attempt to delete old token
-        mock_rest_instance.delete.assert_called()
+        # Refresh re-logs in (login called twice: init + refresh)
+        self.assertEqual(mock_rest_instance.post.call_count, 2)
 
 
 if __name__ == '__main__':
