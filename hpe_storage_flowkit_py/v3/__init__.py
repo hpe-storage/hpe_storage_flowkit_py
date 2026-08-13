@@ -21,6 +21,12 @@ import sys
 current_module = sys.modules[__name__]
 sys.modules[f'{__name__}.src'] = current_module
 
+# Some tests reference bare "src.*" module paths in @patch(...) targets
+# (e.g. @patch('src.workflows.task.time.sleep')). Alias the bare "src"
+# namespace to this package so those targets resolve regardless of how the
+# tests are launched (submodules resolve via this package's __path__).
+sys.modules.setdefault('src', current_module)
+
 # Optional: Add deprecation warning for .src usage
 import warnings
 warnings.warn(
