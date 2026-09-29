@@ -34,7 +34,7 @@ class QOSWorkflow:
 
     def delete_qos(self, name):
         try:
-            response = self.session_mgr.rest_client.delete(f"/qos/{name}")
+            response = self.session_mgr.rest_client.delete(f"/qos/vvset:{name}")
             return response
         except HPEStorageException as e:
             raise
