@@ -15,6 +15,7 @@
 #
 
 import unittest
+from unittest import mock
 from hpe_storage_flowkit_py.v1.src.workflows.vlun import VLUNWorkflow
 from hpe_storage_flowkit_py.v1.src.validators.vlun_validator import validate_vlun_params
 
@@ -156,6 +157,28 @@ class TestVLUNWorkflow(unittest.TestCase):
 		# Invalid non-str/dict argument should raise
 		with self.assertRaises(ValueError):
 			validate_vlun_params("vol1", "host1", 0)
+
+	def _nvme_workflow(self):
+		wf = VLUNWorkflow(MockSessionClient())
+		wf.getVLUN = mock.Mock(return_value=[
+			{"volumeName": "vol1", "hostname": "host1", "lun": 1, "active": True},
+			{"volumeName": "vol1", "hostname": "host1", "lun": 1, "active": False},
+			{"volumeName": "vol1", "hostname": "host2", "lun": 3, "active": False},
+		])
+		wf.delete_vlun = mock.Mock()
+		return wf
+
+	def test_remove_vlun_nvme_force_detach_without_hostname(self):
+		wf = self._nvme_workflow()
+		wf.remove_vlun_nvme("vol1", None, None)
+		self.assertEqual(
+			wf.delete_vlun.call_args_list,
+			[mock.call("vol1", 1, "host1"), mock.call("vol1", 3, "host2")])
+
+	def test_remove_vlun_nvme_only_removes_named_host(self):
+		wf = self._nvme_workflow()
+		wf.remove_vlun_nvme("vol1", "host1", "nqn.host1")
+		wf.delete_vlun.assert_called_once_with("vol1", 1, "host1")
 
 if __name__ == "__main__":
 	unittest.main()

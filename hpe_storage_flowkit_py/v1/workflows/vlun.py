@@ -485,6 +485,21 @@ class VLUNWorkflow:
         return lun_id_next
 
     def remove_vlun_nvme(self, vol_name_3par, hostname, host_nqn):
+        """Unexport an NVMe volume by deleting its VLUN templates.
+
+        Only template VLUNs are deleted; the array then removes the matching
+        active VLUNs. Returns without error when no matching VLUN exists.
+
+        :param vol_name_3par: Name of the volume on the array
+        :type vol_name_3par: str
+        :param hostname: Host to unexport the volume from. If None (force
+                         detach without a connector), the volume is
+                         unexported from EVERY host it is exported to.
+        :type hostname: str or None
+        :param host_nqn: Not used; VLUNs are matched by hostname only
+        :type host_nqn: str or None
+
+        """
         vlunsData = self.getVLUN(vol_name_3par, True)
         print("vlunsData: ", vlunsData)
         if vlunsData == []:
@@ -514,17 +529,22 @@ class VLUNWorkflow:
 
         for vlun in vluns:
             print("  -- vlun: ", vlun)
-            # Check if this VLUN belongs to the specified hostname
-            if vlun.get('hostname') == hostname:
-                #logger.debug("deleting vlun: %(lun)s", {'lun': vlun})
-                print("deleting vlun")
-                self.delete_vlun(vol_name_3par, vlun['lun'],
-                                hostname)
-            else:
+            # In a normal detach a hostname is supplied and we only remove
+            # that host's VLUN. In a force-detach there is no connector, so
+            # hostname is None; fall back to the hostname on the VLUN record
+            # itself (as the Cinder driver's _delete_vlun() does for
+            # FC/iSCSI) so the template is still removed and the active VLUN
+            # is cascaded away.
+            vlun_hostname = vlun.get('hostname')
+            if hostname is not None and vlun_hostname != hostname:
                 #logger.debug("Skipping vlun: %(lun)s -"
                 print("Skipping vlun: %(lun)s -"
                              " belongs to different host: %(vlun_host)s",
                              {'lun': vlun['lun'],
-                              'vlun_host': vlun.get('hostname', 'Unknown')})
+                              'vlun_host': vlun_hostname or 'Unknown'})
+                continue
+            #logger.debug("deleting vlun: %(lun)s", {'lun': vlun})
+            print("deleting vlun")
+            self.delete_vlun(vol_name_3par, vlun['lun'], vlun_hostname)
 
 
